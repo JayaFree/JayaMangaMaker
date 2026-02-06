@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Manga Maker</title>
+    <script>
+        const API_KEY = 'AIzaSyDfVlEQZNoJExU7c-L_HRRgBxj8AOpmGDg';
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #1a1a1a;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        .neon-border {
+            border: 3px solid;
+            border-image-slice: 1;
+            border-width: 3px;
+            border-image-source: linear-gradient(90deg, #a855f7, #purple, #00faff);
+        }
+    </style>
+</head>
+<body>
+    <!-- Interface utilisateur -->
+    <div class="container mx-auto p-8 text-white text-center">
+        <h1 class="text-4xl font-bold mb-6">AI Manga Maker</h1>
+        <textarea id="ideaInput" 
+            class="w-full p-4 bg-gray-800 text-white rounded-lg border-2 border-purple-500"
+            rows="4" placeholder="Entrez vos idées ici..."></textarea>
+        <button id="generateButton" 
+                class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg mt-4">
+            GÉNÉRER MON MANGA
+        </button>
+        <div class="player mt-8">
+            <img id="mangaImage" src="" alt="Image Scene" class="mx-auto rounded-md shadow-lg neon-border w-[1024px]" />
+            <p id="mangaNarration" class="mt-4 text-lg font-medium"></p>
+        </div>
+    </div>
+
+    <script>
+        const ideaInput = document.getElementById('ideaInput');
+        const generateButton = document.getElementById('generateButton');
+        const mangaImage = document.getElementById('mangaImage');
+        const mangaNarration = document.getElementById('mangaNarration');
+
+        let currentScene = 0;
+        let scenes = [];
+
+        async function generateManga() {
+            currentScene = 0;
+            scenes = [];
+
+            const userIdea = ideaInput.value.trim();
+            if (!userIdea) {
+                alert("Merci d'entrer une idée pour commencer !");
+                return;
+            }
+
+            // Appel à l'API Gemini pour la génération des scènes
+            const response = await fetch('https://api.google.com/gemini/generation', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${API_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    prompt: userIdea,
+                })
+            });
+
+            const result = await response.json();
+
+            if (!Array.isArray(result)) {
+                alert("Erreur de l'API Gemini. Veuillez vérifier votre clé ou contactez le support.");
+                return;
+            }
+
+            scenes = result;
+            playScene();
+        }
+
+        function generateSceneImage(visualPrompt) {
+            return `https://image.pollinations.ai/prompt/${encodeURIComponent(visualPrompt)}?width=1024&height=576&nologo=true&model=flux`;
+        }
+
+        function playScene() {
+            if (currentScene >= scenes.length) return;
+
+            const scene = scenes[currentScene];
+            const imageUrl = generateSceneImage(scene.visual_prompt);
+            const narration = scene.narration;
+
+            mangaImage.src = imageUrl;
+            mangaNarration.textContent = narration;
+
+            const utterance = new SpeechSynthesisUtterance(narration);
+            utterance.lang = 'fr-FR';
+            utterance.onend = () => {
+                currentScene++;
+                playScene();
+            };
+            window.speechSynthesis.speak(utterance);
+        }
+
+        generateButton.addEventListener('click', generateManga);
+    </script>
+</body>
+</html>
